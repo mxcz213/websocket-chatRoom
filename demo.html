@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>优化聊天demo</title>
+	<style type="text/css">
+		body,h1,textarea,div,button{
+			padding:0;
+			margin:0;
+		}
+		button{
+			border:0;
+			outline:0;
+		}
+		body{
+			background:#ccc;
+			font-family: "微软雅黑";
+		}
+		.wrapper{
+			width:800px;
+			height: 100%;
+			margin:0 auto;
+			border:1px solid #ccc;
+		}
+		.title{
+			font-size: 16px;
+			background-color:#eee;
+			color:#333;
+			text-align:center;
+			line-height: 40px;
+			border-bottom:1px solid #ccc;
+			margin: 0;
+    		padding: 0;
+		}
+		.chat-box{
+			font-size: 14px;
+			background-color: #F0FFF0;
+			padding:20px;
+			min-height:500px;
+			box-sizing:border-box;
+		}
+		.chat-box div{
+			margin:10px 0;
+		}
+		.chat-control{
+			background-color: #fff;
+		    font-size: 0;
+		    padding: 20px 0;
+		    text-align: center;
+		}
+		.message{
+			width: 90%;
+		    height: 90px;
+		    padding: 10px 20px;
+		    box-sizing: border-box;
+		    border-color: #ccc;
+		    font-size: 14px;
+		    margin-bottom: 20px;
+		}
+		.button{
+			width: 100px;
+		    box-sizing: border-box;
+		    background-color: #fd8032;
+		    color: #fff;
+		    text-align: center;
+		    height: 40px;
+		    font-size: 14px;
+		    border-radius: 5px;
+		}
+		.chat-connect,
+		.chat-enter,
+		.chat-leave{
+			text-align:center;
+			margin:10px 0;
+		}
+		.chat-enter span{
+			color:red;
+		}
+		.chat-leave span{
+			color:#333;
+		}
+		.chat-message{
+			position:relative;
+		}
+		.chat-message span{
+			color:#fff;
+			padding: 8px 10px;
+		    background: #399038;
+		    border-radius: 5px;
+		    display: inline-block;
+		}
+		.chat-message em{
+			font-style: normal;
+		    color: #333;
+		    width: 50px;
+		    height: 50px;
+		    border: 1px solid #ccc;
+		    display: inline-block;
+		    background: #e0bacd;
+		    text-align: center;
+		    line-height: 50px;
+		}
+		.chat-message-text{
+			position: absolute;
+		    top: 15px;
+		    left: 60px;
+		}
+		.chat-message-text:before{
+			content: ' ';
+		    position: absolute;
+		    top: 13px;
+		    left: -5px;
+		    width: 0;
+		    height: 0;
+		    border-top: 5px solid transparent;
+		    border-right: 5px solid #399038;
+		    border-bottom: 5px solid transparent;
+
+		}
+	</style>
+</head>
+<body>
+	<div class="wrapper">
+		<h1 class="title">多人聊天</h1>
+		<div id="chatBox" class="chat-box"></div>
+		<div class="chat-control">
+			<textarea id="message" class="message"></textarea>
+			<button id="send" class="button">发送</button>
+		</div>
+	</div>
+	<script type="text/javascript">
+		var chatBox = document.getElementById('chatBox');
+		var sendBtn = document.getElementById('send');
+		var messageText = document.getElementById('message');
+		var websocket = new WebSocket('ws://localhost:3000');
+
+		websocket.onopen = function(evt){
+			writeToScreen({type:'connect',message:'聊天连接已经建立'});
+			console.log(evt.data);
+		}
+
+		websocket.onclose = function(evt){
+			writeToScreen({type:'leave',message:'服务器连接已断开！'});
+		}
+
+		websocket.onmessage = function(evt){
+			var data = JSON.parse(evt.data);
+			writeToScreen(data);
+		}
+
+		function writeToScreen(data){
+			var div = document.createElement('div');
+			var span = document.createElement('span');
+			div.appendChild(span);
+			switch(data.type){
+				case 'connect':
+					div.className = 'chat-connect';
+					span.innerHTML = data.message;
+				break;
+				case 'enter':
+					div.className = 'chat-enter';
+					span.innerHTML = data.message;
+				break;
+				case 'message':
+					sessionStorage.setItem('userId',data.id);
+					div.className = 'chat-message';
+					var tpl = '<em class="avart">' + data.nickname + '</em><div class="chat-message-text"><span>' + data.message + '</span></div>';
+					div.innerHTML = tpl;
+				break;
+				case 'leave':
+					div.className = 'chat-leave';
+					span.innerHTML = data.message;
+				break;
+			}
+			
+			chatBox.appendChild(div);
+		}
+
+		sendBtn.onclick = function(){
+			var msg = messageText.value;
+			websocket.send(msg);
+			messageText.value = '';
+		}
+
+		document.onkeydown = function(e){
+			if(e.keyCode === 13){
+				sendBtn.onclick();
+			}
+		}
+	</script>
+</body>
+</html>
